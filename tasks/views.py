@@ -21,10 +21,17 @@ def update_task_status(request, task_id):
         return Response({'success': False, 'message': 'Task not found'}, status=404)
 
     new_status = request.data.get('status')
+    user_role = request.data.get('role')  # 👈 ADDED (for admin check)
 
+    # ❌ prevent overdue → IN_PROGRESS (your existing logic)
     if task.status == 'OVERDUE':
         if new_status == 'IN_PROGRESS':
             return Response({'success': False, 'message': 'Overdue tasks cannot move back to IN_PROGRESS'}, status=422)
+
+    # ✅ ADDED: Only admin can close overdue tasks
+    if task.status == 'OVERDUE' and new_status == 'DONE':
+        if user_role != 'ADMIN':
+            return Response({'success': False, 'message': 'Only admin can close overdue tasks'}, status=403)
 
     task.status = new_status
     task.save()
